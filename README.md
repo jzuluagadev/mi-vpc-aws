@@ -99,7 +99,7 @@ tofu destroy
 
 ## 👨‍💻 Autor
 
-**Jorge Zuluaga**
+**Juan Zuluaga**
 - GitHub: [@jzuluagadev](https://github.com/jzuluagadev)
 
 ---
