@@ -15,10 +15,10 @@ output "internet_gateway_id" {
 
 output "instance_id" {
   description = "ID del EC2 creado"
-  value       = aws_instance.web.id
+  value       = try(aws_instance.web[0].id, "")
 }
 
 output "instance_public_ip" {
   description = "IP pública del EC2"
-  value       = aws_instance.web.public_ip
+  value       = try(aws_instance.web[0].public_ip, "")
 }

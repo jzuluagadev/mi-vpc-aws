@@ -45,3 +45,27 @@ variable "key_name" {
   type        = string
   default     = ""
 }
+
+variable "create_ec2" {
+  description = "Crear la instancia EC2?"
+  type        = bool
+  default     = false
+}
+
+variable "create_private_subnet" {
+  description = "Crear una subnet privada?"
+  type        = bool
+  default     = true
+}
+
+variable "private_subnet_cidr" {
+  description = "CIDR block de la subnet privada"
+  type        = string
+  default     = "10.0.2.0/24"
+}
+
+variable "create_nat_gateway" {
+  description = "Crear NAT Gateway para permitir salida desde la subnet privada"
+  type        = bool
+  default     = false
+}

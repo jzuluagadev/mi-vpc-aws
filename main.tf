@@ -51,6 +51,54 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
+# Subnet privada (opcional)
+resource "aws_subnet" "private" {
+  count             = var.create_private_subnet ? 1 : 0
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_subnet_cidr
+  availability_zone = "${var.aws_region}a"
+
+  tags = {
+    Name        = "subnet-private-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# NAT (opcional) — EIP + NAT Gateway
+resource "aws_eip" "nat_eip" {
+  count = var.create_nat_gateway ? 1 : 0
+  vpc   = true
+}
+
+resource "aws_nat_gateway" "gw" {
+  count         = var.create_nat_gateway ? 1 : 0
+  allocation_id = aws_eip.nat_eip[0].id
+  subnet_id     = aws_subnet.public.id
+}
+
+# Route table privada y ruta hacia NAT (si existe)
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name        = "rt-private-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+resource "aws_route" "private_nat" {
+  count          = var.create_nat_gateway ? 1 : 0
+  route_table_id = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id = aws_nat_gateway.gw[0].id
+}
+
+resource "aws_route_table_association" "private" {
+  count = var.create_private_subnet ? 1 : 0
+  subnet_id      = aws_subnet.private[0].id
+  route_table_id = aws_route_table.private.id
+}
+
 # Security Group para EC2
 resource "aws_security_group" "ec2_sg" {
   name   = "ec2-sg-${var.environment}"
@@ -83,14 +131,45 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
-# EC2 instance (ejemplo)
+# IAM role + profile para SSM (opcional si EC2 se crea)
+resource "aws_iam_role" "ec2_ssm_role" {
+  count = var.create_ec2 ? 1 : 0
+  name  = "ec2-ssm-role-${var.environment}"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_attach" {
+  count      = var.create_ec2 ? 1 : 0
+  role       = aws_iam_role.ec2_ssm_role[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ec2_profile" {
+  count = var.create_ec2 ? 1 : 0
+  name  = "ec2-profile-${var.environment}"
+  role  = aws_iam_role.ec2_ssm_role[0].name
+}
+
+# EC2 instance (opcional)
 resource "aws_instance" "web" {
-  ami                         = var.ami
-  instance_type               = var.instance_type
-  subnet_id                   = aws_subnet.public.id
-  vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
-  associate_public_ip_address = true
-  key_name                    = var.key_name != "" ? var.key_name : null
+  count = var.create_ec2 ? 1 : 0
+
+  ami                    = var.ami
+  instance_type          = var.instance_type
+  subnet_id              = var.create_private_subnet ? aws_subnet.private[0].id : aws_subnet.public.id
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  associate_public_ip_address = var.create_private_subnet ? false : true
+  key_name               = var.key_name != "" ? var.key_name : null
+  iam_instance_profile   = var.create_ec2 ? aws_iam_instance_profile.ec2_profile[0].name : null
 
   tags = {
     Name        = "ec2-web-${var.environment}"
