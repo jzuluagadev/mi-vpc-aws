@@ -85,12 +85,12 @@ resource "aws_security_group" "ec2_sg" {
 
 # EC2 instance (ejemplo)
 resource "aws_instance" "web" {
-  ami                    = var.ami
-  instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public.id
-  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  ami                         = var.ami
+  instance_type               = var.instance_type
+  subnet_id                   = aws_subnet.public.id
+  vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
   associate_public_ip_address = true
-  key_name               = var.key_name != "" ? var.key_name : null
+  key_name                    = var.key_name != "" ? var.key_name : null
 
   tags = {
     Name        = "ec2-web-${var.environment}"
