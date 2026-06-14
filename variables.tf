@@ -35,9 +35,15 @@ variable "instance_type" {
 }
 
 variable "my_ip" {
-  description = "Tu IP/CIDR para SSH (ej. 1.2.3.4/32). Cambia esto por seguridad."
+  description = "Tu IP/CIDR para SSH (ej. 1.2.3.4/32). Vacío = no permitir SSH por defecto."
   type        = string
-  default     = "0.0.0.0/0"
+  default     = ""
+}
+
+variable "allow_http_public" {
+  description = "Permitir acceso HTTP público (0.0.0.0/0)?"
+  type        = bool
+  default     = false
 }
 
 variable "key_name" {

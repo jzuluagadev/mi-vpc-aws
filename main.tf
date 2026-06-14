@@ -87,14 +87,14 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route" "private_nat" {
-  count          = var.create_nat_gateway ? 1 : 0
-  route_table_id = aws_route_table.private.id
+  count                  = var.create_nat_gateway ? 1 : 0
+  route_table_id         = aws_route_table.private.id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id = aws_nat_gateway.gw[0].id
+  nat_gateway_id         = aws_nat_gateway.gw[0].id
 }
 
 resource "aws_route_table_association" "private" {
-  count = var.create_private_subnet ? 1 : 0
+  count          = var.create_private_subnet ? 1 : 0
   subnet_id      = aws_subnet.private[0].id
   route_table_id = aws_route_table.private.id
 }
@@ -107,19 +107,7 @@ resource "aws_security_group" "ec2_sg" {
   ingress {
     from_port   = 22
     to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.my_ip]
-  }
 
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
@@ -129,6 +117,29 @@ resource "aws_security_group" "ec2_sg" {
     Name        = "ec2-sg-${var.environment}"
     Environment = var.environment
   }
+}
+
+# Reglas de SG condicionales (no abren puertos por defecto)
+resource "aws_security_group_rule" "ssh" {
+  count             = var.my_ip != "" ? 1 : 0
+  type              = "ingress"
+  from_port         = 22
+  to_port           = 22
+  protocol          = "tcp"
+  cidr_blocks       = [var.my_ip]
+  security_group_id = aws_security_group.ec2_sg.id
+  description       = "SSH from allowed IP"
+}
+
+resource "aws_security_group_rule" "http" {
+  count             = var.allow_http_public ? 1 : 0
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.ec2_sg.id
+  description       = "Public HTTP (only if enabled)"
 }
 
 # IAM role + profile para SSM (opcional si EC2 se crea)
@@ -163,13 +174,22 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 resource "aws_instance" "web" {
   count = var.create_ec2 ? 1 : 0
 
-  ami                    = var.ami
-  instance_type          = var.instance_type
-  subnet_id              = var.create_private_subnet ? aws_subnet.private[0].id : aws_subnet.public.id
-  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  ami                         = var.ami
+  instance_type               = var.instance_type
+  subnet_id                   = var.create_private_subnet ? aws_subnet.private[0].id : aws_subnet.public.id
+  vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
   associate_public_ip_address = var.create_private_subnet ? false : true
-  key_name               = var.key_name != "" ? var.key_name : null
-  iam_instance_profile   = var.create_ec2 ? aws_iam_instance_profile.ec2_profile[0].name : null
+  key_name                    = var.key_name != "" ? var.key_name : null
+  iam_instance_profile        = var.create_ec2 ? aws_iam_instance_profile.ec2_profile[0].name : null
+
+  metadata_options {
+    http_tokens   = "required"
+    http_endpoint = "enabled"
+  }
+
+  root_block_device {
+    encrypted = true
+  }
 
   tags = {
     Name        = "ec2-web-${var.environment}"
