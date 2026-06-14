@@ -50,3 +50,50 @@ resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
 }
+
+# Security Group para EC2
+resource "aws_security_group" "ec2_sg" {
+  name   = "ec2-sg-${var.environment}"
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name        = "ec2-sg-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# EC2 instance (ejemplo)
+resource "aws_instance" "web" {
+  ami                    = var.ami
+  instance_type          = var.instance_type
+  subnet_id              = aws_subnet.public.id
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  associate_public_ip_address = true
+  key_name               = var.key_name != "" ? var.key_name : null
+
+  tags = {
+    Name        = "ec2-web-${var.environment}"
+    Environment = var.environment
+  }
+}
