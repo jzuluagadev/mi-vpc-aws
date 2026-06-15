@@ -75,3 +75,9 @@ variable "create_nat_gateway" {
   type        = bool
   default     = false
 }
+
+variable "availability_zone" {
+  description = "Availability Zone para las subnets (ej. us-east-1a)"
+  type        = string
+  default     = "us-east-1a"
+}

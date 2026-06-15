@@ -12,7 +12,7 @@ resource "aws_vpc" "main" {
 resource "aws_subnet" "public" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.subnet_cidr
-  availability_zone = "${var.aws_region}a"
+  availability_zone = var.availability_zone
 
   tags = {
     Name        = "subnet-public-${var.environment}"
@@ -56,7 +56,7 @@ resource "aws_subnet" "private" {
   count             = var.create_private_subnet ? 1 : 0
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_subnet_cidr
-  availability_zone = "${var.aws_region}a"
+  availability_zone = var.availability_zone
 
   tags = {
     Name        = "subnet-private-${var.environment}"
@@ -67,7 +67,6 @@ resource "aws_subnet" "private" {
 # NAT (opcional) — EIP + NAT Gateway
 resource "aws_eip" "nat_eip" {
   count = var.create_nat_gateway ? 1 : 0
-  vpc   = true
 }
 
 resource "aws_nat_gateway" "gw" {
@@ -78,6 +77,7 @@ resource "aws_nat_gateway" "gw" {
 
 # Route table privada y ruta hacia NAT (si existe)
 resource "aws_route_table" "private" {
+  count  = var.create_private_subnet ? 1 : 0
   vpc_id = aws_vpc.main.id
 
   tags = {
@@ -88,7 +88,7 @@ resource "aws_route_table" "private" {
 
 resource "aws_route" "private_nat" {
   count                  = var.create_nat_gateway ? 1 : 0
-  route_table_id         = aws_route_table.private.id
+  route_table_id         = aws_route_table.private[0].id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = aws_nat_gateway.gw[0].id
 }
@@ -96,7 +96,7 @@ resource "aws_route" "private_nat" {
 resource "aws_route_table_association" "private" {
   count          = var.create_private_subnet ? 1 : 0
   subnet_id      = aws_subnet.private[0].id
-  route_table_id = aws_route_table.private.id
+  route_table_id = aws_route_table.private[0].id
 }
 
 # Security Group para EC2
@@ -104,10 +104,8 @@ resource "aws_security_group" "ec2_sg" {
   name   = "ec2-sg-${var.environment}"
   vpc_id = aws_vpc.main.id
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-
+  egress {
+    from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
