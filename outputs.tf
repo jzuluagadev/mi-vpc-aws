@@ -3,14 +3,24 @@ output "vpc_id" {
   value       = aws_vpc.main.id
 }
 
-output "subnet_id" {
-  description = "ID de la Subnet creada"
+output "public_subnet_id" {
+  description = "ID de la Subnet pública"
   value       = aws_subnet.public.id
+}
+
+output "private_subnet_id" {
+  description = "ID de la Subnet privada"
+  value       = try(aws_subnet.private[0].id, "")
 }
 
 output "internet_gateway_id" {
   description = "ID del Internet Gateway"
   value       = aws_internet_gateway.main.id
+}
+
+output "nat_gateway_id" {
+  description = "ID del NAT Gateway"
+  value       = try(aws_nat_gateway.gw[0].id, "")
 }
 
 output "instance_id" {

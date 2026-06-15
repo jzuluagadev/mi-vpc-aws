@@ -1,10 +1,11 @@
 # VPC principal
 resource "aws_vpc" "main" {
-  cidr_block = var.vpc_cidr
+  cidr_block           = var.vpc_cidr
+  enable_dns_support   = true
+  enable_dns_hostnames = true
 
   tags = {
-    Name        = "vpc-${var.environment}"
-    Environment = var.environment
+    Name = "vpc-${var.environment}"
   }
 }
 
@@ -15,8 +16,7 @@ resource "aws_subnet" "public" {
   availability_zone = var.availability_zone
 
   tags = {
-    Name        = "subnet-public-${var.environment}"
-    Environment = var.environment
+    Name = "subnet-public-${var.environment}"
   }
 }
 
@@ -25,12 +25,11 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name        = "igw-${var.environment}"
-    Environment = var.environment
+    Name = "igw-${var.environment}"
   }
 }
 
-# Route Table
+# Route Table pública
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
@@ -40,8 +39,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name        = "rt-public-${var.environment}"
-    Environment = var.environment
+    Name = "rt-public-${var.environment}"
   }
 }
 
@@ -59,8 +57,7 @@ resource "aws_subnet" "private" {
   availability_zone = var.availability_zone
 
   tags = {
-    Name        = "subnet-private-${var.environment}"
-    Environment = var.environment
+    Name = "subnet-private-${var.environment}"
   }
 }
 
@@ -81,8 +78,7 @@ resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name        = "rt-private-${var.environment}"
-    Environment = var.environment
+    Name = "rt-private-${var.environment}"
   }
 }
 
@@ -112,8 +108,7 @@ resource "aws_security_group" "ec2_sg" {
   }
 
   tags = {
-    Name        = "ec2-sg-${var.environment}"
-    Environment = var.environment
+    Name = "ec2-sg-${var.environment}"
   }
 }
 
@@ -190,7 +185,6 @@ resource "aws_instance" "web" {
   }
 
   tags = {
-    Name        = "ec2-web-${var.environment}"
-    Environment = var.environment
+    Name = "ec2-web-${var.environment}"
   }
 }

@@ -31,7 +31,7 @@ variable "ami" {
 variable "instance_type" {
   description = "Tipo de instancia EC2"
   type        = string
-  default     = "t3.micro"
+  default     = "t2.micro"
 }
 
 variable "my_ip" {
